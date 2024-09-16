@@ -7,4 +7,4 @@ I remember hearing a story about how John Romero of id Software fame had learned
 ## Games
 (in chronological order of completion)
 
-- Pong
+- [Pong](pong/README.md)
