@@ -1,6 +1,9 @@
 # Pong
 ## Todo
 - [x] Add scoring system
-- [ ] Display score on screen
+- [x] Display score on screen
+- [ ] Fix field size with scoreboard added
 - [ ] Better computer AI
+
+## Stretch
 - [ ] Directional ball control

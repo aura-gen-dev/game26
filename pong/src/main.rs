@@ -15,6 +15,7 @@ const PADDLE_PAD: f32 = PADDLE_WIDTH / 2. + 10.;
 const BALL_RADIUS: f32 = 8.;
 const BALL_SPEED: f32 = 400.;
 const PADDLE_SPEED: f32 = 200.;
+const SCOREBOARD_HEIGHT: f32 = SCREEN_HEIGHT * 0.05;
 
 fn main() {
     App::new()
@@ -62,6 +63,11 @@ fn setup(
                 radius: BALL_RADIUS,
             })),
             material: materials.add(Color::WHITE),
+            transform: Transform::from_translation(Vec3::new(
+                0.0,
+                -SCOREBOARD_HEIGHT,
+                0.0,
+            )),
             ..default()
         },
         Ball,
@@ -75,7 +81,7 @@ fn setup(
             material: materials.add(Color::WHITE),
             transform: Transform::from_translation(Vec3::new(
                 -SCREEN_WIDTH / 2. + PADDLE_PAD,
-                0.0,
+                -SCOREBOARD_HEIGHT,
                 0.0,
             )),
             ..default()
@@ -91,13 +97,23 @@ fn setup(
             material: materials.add(Color::WHITE),
             transform: Transform::from_translation(Vec3::new(
                 SCREEN_WIDTH / 2. - PADDLE_PAD,
-                0.0,
+                -SCOREBOARD_HEIGHT,
                 0.0,
             )),
             ..default()
         },
         OpponentPaddle,
     ));
+
+    // Scoreboard "wall"
+    commands.spawn(
+        MaterialMesh2dBundle {
+            mesh: Mesh2dHandle(meshes.add(Rectangle::new(SCREEN_WIDTH, 1.0))),
+            material: materials.add(Color::WHITE),
+            transform: Transform::from_translation(Vec3::new(0.0, SCREEN_HEIGHT / 2.0 - SCOREBOARD_HEIGHT, 0.0)),
+            ..default()
+        },
+    );
 }
 
 fn update_position(time: Res<Time>, mut query: Query<(&Velocity, &mut Transform)>) {
@@ -174,10 +190,10 @@ fn check_collisions(
         // Bounce off the bottom wall
         ball_velocity.0.y = -ball_velocity.0.y;
         ball_transform.translation.y = -SCREEN_HEIGHT / 2. + BALL_RADIUS + 1.;
-    } else if ball_y + BALL_RADIUS >= SCREEN_HEIGHT / 2. {
+    } else if ball_y + BALL_RADIUS >= SCREEN_HEIGHT / 2. - SCOREBOARD_HEIGHT {
         // Bounce off the top wall
         ball_velocity.0.y = -ball_velocity.0.y;
-        ball_transform.translation.y = SCREEN_HEIGHT / 2. - BALL_RADIUS - 1.;
+        ball_transform.translation.y = SCREEN_HEIGHT / 2. - BALL_RADIUS - 1. - SCOREBOARD_HEIGHT;
     }
 
     if ball_x - BALL_RADIUS <= player_x + PADDLE_WIDTH / 2.
@@ -196,19 +212,19 @@ fn check_collisions(
         ball_transform.translation.x = opponent_x - PADDLE_WIDTH / 2. - BALL_RADIUS - 1.;
     }
 
-    if player_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. {
+    if player_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. - SCOREBOARD_HEIGHT {
         // Prevent the player from going off the top of the screen
         player_velocity.0.y = 0.;
-        player_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2.;
+        player_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2. - SCOREBOARD_HEIGHT;
     } else if player_y - PADDLE_HEIGHT / 2. <= -SCREEN_HEIGHT / 2. {
         // Prevent the player from going off the bottom of the screen
         player_velocity.0.y = 0.;
         player_transform.translation.y = -SCREEN_HEIGHT / 2. + PADDLE_HEIGHT / 2.;
     }
 
-    if opponent_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. {
+    if opponent_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. - SCOREBOARD_HEIGHT {
         // Prevent the opponent from going off the top of the screen
-        opponent_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2.;
+        opponent_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2. - SCOREBOARD_HEIGHT;
     } else if opponent_y - PADDLE_HEIGHT / 2. <= -SCREEN_HEIGHT / 2. {
         // Prevent the opponent from going off the bottom of the screen
         opponent_transform.translation.y = -SCREEN_HEIGHT / 2. + PADDLE_HEIGHT / 2.;
