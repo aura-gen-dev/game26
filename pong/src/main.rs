@@ -103,6 +103,7 @@ fn setup(
             ..default()
         },
         OpponentPaddle,
+        Velocity(Vec3::ZERO),
     ));
 
     // Scoreboard "wall"
@@ -146,13 +147,32 @@ fn player_movement(
 }
 
 fn opponent_movement(
-    ball_query: Query<&Transform, With<Ball>>,
-    mut query: Query<&mut Transform, (With<OpponentPaddle>, Without<Ball>)>,
+    ball_query: Query<(&Transform, &Velocity), With<Ball>>,
+    mut query: Query<(&mut Velocity, &Transform), (With<OpponentPaddle>, Without<Ball>)>,
 ) {
-    let ball_transform= ball_query.single();
-    let mut paddle_transform = query.single_mut();
+    let (ball_transform, ball_velocity)= ball_query.single();
+    let (mut paddle_velocity, paddle_transform) = query.single_mut();
 
-    paddle_transform.translation.y = ball_transform.translation.y;
+    if ball_velocity.0.x < 0. {
+        // Ball moving away - return to center
+        if paddle_transform.translation.y < 0. {
+            paddle_velocity.0.y = PADDLE_SPEED;
+        } else if paddle_transform.translation.y > 0. {
+            paddle_velocity.0.y = -PADDLE_SPEED;
+        } else {
+            paddle_velocity.0.y = 0.;
+        }
+    } else {
+        // Ball moving towards - follow the ball
+        if ball_transform.translation.y < paddle_transform.translation.y {
+            paddle_velocity.0.y = -PADDLE_SPEED;
+        } else if ball_transform.translation.y > paddle_transform.translation.y {
+            paddle_velocity.0.y = PADDLE_SPEED;
+        } else {
+            paddle_velocity.0.y = 0.;
+        }
+    }
+
 }
 
 fn check_collisions(
