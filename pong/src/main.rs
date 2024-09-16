@@ -2,6 +2,7 @@ use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
+use rand::Rng;
 
 mod components;
 
@@ -56,6 +57,9 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
+    let mut rng = rand::thread_rng();
+    let ball_y: f32 = rng.gen();
+
     // Ball
     commands.spawn((
         MaterialMesh2dBundle {
@@ -71,7 +75,7 @@ fn setup(
             ..default()
         },
         Ball,
-        Velocity(Vec3::new(-BALL_SPEED, BALL_SPEED, 0.0)),
+        Velocity(Vec3::new(-BALL_SPEED, BALL_SPEED / 3. + BALL_SPEED * ball_y, 0.0)),
     ));
 
     // Player
@@ -258,17 +262,20 @@ fn check_score_event(
 ) {
     let (mut ball_transform, mut ball_velocity) = ball.single_mut();
 
+    let mut rng = rand::thread_rng();
+    let ball_y: f32 = rng.gen();
+
     for event in events.read() {
         match event.0 {
             Scorer::Player => {
                 score.player += 1;
                 ball_transform.translation = Vec3::ZERO;
-                ball_velocity.0 = Vec3::new(-BALL_SPEED, BALL_SPEED, 0.0);
+                ball_velocity.0 = Vec3::new(-BALL_SPEED, BALL_SPEED / 3. + BALL_SPEED * ball_y, 0.0);
             }
             Scorer::Opponent => {
                 score.opponent += 1;
                 ball_transform.translation = Vec3::ZERO;
-                ball_velocity.0 = Vec3::new(BALL_SPEED, -BALL_SPEED, 0.0);
+                ball_velocity.0 = Vec3::new(BALL_SPEED, -BALL_SPEED / 3. - BALL_SPEED * ball_y, 0.0);
             }
         }
         println!("Score: {} - {}", score.player, score.opponent);
