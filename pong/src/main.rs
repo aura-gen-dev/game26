@@ -30,6 +30,8 @@ fn main() {
                 })
                 .build(),
         )
+        .insert_resource(Score::default())
+        .add_event::<Scored>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -39,6 +41,7 @@ fn main() {
                 update_position,
                 opponent_movement,
                 check_collisions,
+                check_score_event,
             ).chain(),
         )
         .run();
@@ -139,6 +142,7 @@ fn check_collisions(
     mut ball_query: Query<(&mut Velocity, &mut Transform), (With<Ball>, Without<PlayerPaddle>, Without<OpponentPaddle>)>,
     mut player_query: Query<(&mut Velocity, &mut Transform), (With<PlayerPaddle>, Without<OpponentPaddle>)>,
     mut opponent_query: Query<&mut Transform, (With<OpponentPaddle>, Without<Ball>, Without<PlayerPaddle>)>,
+    mut events: EventWriter<Scored>,
 ) {
     let (mut ball_velocity, mut ball_transform) = ball_query.single_mut();
     let (mut player_velocity, mut player_transform) = player_query.single_mut();
@@ -153,15 +157,17 @@ fn check_collisions(
     let opponent_x = opponent_transform.translation.x;
     let opponent_y = opponent_transform.translation.y;
 
-    // if ball_x - BALL_RADIUS <= -SCREEN_WIDTH / 2. {
-    //     // Player scores
-    //     println!("Player scores!");
-    //     return
-    // } else if ball_x + BALL_RADIUS >= SCREEN_WIDTH / 2. {
-    //     // Opponent scores
-    //     println!("Opponent scores!");
-    //     return
-    // }
+    if ball_x - BALL_RADIUS <= -SCREEN_WIDTH / 2. {
+        // Player scores
+        println!("Opponent scores!");
+        events.send(Scored(Scorer::Opponent));
+        return
+    } else if ball_x + BALL_RADIUS >= SCREEN_WIDTH / 2. {
+        // Opponent scores
+        println!("Player scores!");
+        events.send(Scored(Scorer::Player));
+        return
+    }
 
     if ball_y - BALL_RADIUS <= -SCREEN_HEIGHT / 2. {
         // Bounce off the bottom wall
@@ -205,6 +211,30 @@ fn check_collisions(
     } else if opponent_y - PADDLE_HEIGHT / 2. <= -SCREEN_HEIGHT / 2. {
         // Prevent the opponent from going off the bottom of the screen
         opponent_transform.translation.y = -SCREEN_HEIGHT / 2. + PADDLE_HEIGHT / 2.;
+    }
+}
+
+fn check_score_event(
+    mut ball: Query<(&mut Transform, &mut Velocity), With<Ball>>,
+    mut score: ResMut<Score>,
+    mut events: EventReader<Scored>,
+) {
+    let (mut ball_transform, mut ball_velocity) = ball.single_mut();
+
+    for event in events.read() {
+        match event.0 {
+            Scorer::Player => {
+                score.player += 1;
+                ball_transform.translation = Vec3::ZERO;
+                ball_velocity.0 = Vec3::new(-BALL_SPEED, BALL_SPEED, 0.0);
+            }
+            Scorer::Opponent => {
+                score.opponent += 1;
+                ball_transform.translation = Vec3::ZERO;
+                ball_velocity.0 = Vec3::new(BALL_SPEED, -BALL_SPEED, 0.0);
+            }
+        }
+        println!("Score: {} - {}", score.player, score.opponent);
     }
 }
 
