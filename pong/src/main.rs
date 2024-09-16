@@ -32,7 +32,7 @@ fn main() {
         )
         .insert_resource(Score::default())
         .add_event::<Scored>()
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, create_scoreboard).chain())
         .add_systems(
             Update,
             (
@@ -42,6 +42,7 @@ fn main() {
                 opponent_movement,
                 check_collisions,
                 check_score_event,
+                update_scoreboard,
             ).chain(),
         )
         .run();
@@ -238,3 +239,115 @@ fn check_score_event(
     }
 }
 
+fn create_scoreboard(
+    mut commands: Commands,
+) {
+    let score_root = commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(40.0),
+                height: Val::Percent(5.0),
+                position_type: PositionType::Absolute,
+                left: Val::Percent(30.0),
+                top: Val::Px(0.0),
+                ..default()
+            },
+            background_color: BackgroundColor(Color::WHITE),
+            ..default()
+        }).id();
+
+    let player_score_box = commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(50.0),
+                height: Val::Percent(100.0),
+                border: UiRect::all(Val::Px(5.0)),
+                ..default()
+            },
+            background_color: BackgroundColor(Color::srgb(0.65, 0.65, 0.65)),
+            ..default()
+        }).id();
+
+    let player_score_text = commands
+        .spawn(TextBundle {
+            style: Style {
+                height: Val::Percent(100.0),
+                margin: UiRect {
+                    left: Val::Auto,
+                    right: Val::Auto,
+                    top: Val::Auto,
+                    bottom: Val::Auto,
+                },
+                ..default()
+            },
+            text: Text::from_section(
+                "Player: 0".to_string(), 
+                TextStyle {
+                    font_size: 25.0,
+                    ..default()
+                }
+            ),
+            ..default()
+        })
+        .insert(PlayerScoreboard)
+        .id();
+
+    let opponent_score_box = commands
+        .spawn(NodeBundle {
+            style: Style {
+                width: Val::Percent(50.0),
+                height: Val::Percent(100.0),
+                border: UiRect::all(Val::Px(5.0)),
+                ..default()
+            },
+            background_color: BackgroundColor(Color::srgb(0.65, 0.65, 0.65)),
+            ..default()
+        }).id();
+
+        let opponent_score_text = commands
+            .spawn(TextBundle {
+                style: Style {
+                    height: Val::Percent(100.0),
+                    margin: UiRect {
+                        left: Val::Auto,
+                        right: Val::Auto,
+                        top: Val::Auto,
+                        bottom: Val::Auto,
+                    },
+                    ..default()
+                },
+                text: Text::from_section(
+                    "Opponent: 0".to_string(), 
+                    TextStyle {
+                        font_size: 25.0,
+                        ..default()
+                    }
+                ),
+                ..default()
+            })
+            .insert(OpponentScoreboard)
+            .id();
+        
+    commands.entity(player_score_box).add_child(player_score_text);
+    commands.entity(opponent_score_box).add_child(opponent_score_text);
+    commands.entity(score_root).add_child(player_score_box);
+    commands.entity(score_root).add_child(opponent_score_box);
+}
+
+fn update_scoreboard(
+    mut player_scoreboard: Query<&mut Text, With<PlayerScoreboard>>,
+    mut opponent_scoreboard: Query<&mut Text, (With<OpponentScoreboard>, Without<PlayerScoreboard>)>,
+    score: Res<Score>,
+) {
+    if score.is_changed() {
+        let player_text = format!("Player: {}", score.player);
+        let opponent_text = format!("Opponent: {}", score.opponent);
+
+        for mut text in player_scoreboard.iter_mut() {
+            text.sections[0].value = player_text.clone();
+        }
+        for mut text in opponent_scoreboard.iter_mut() {
+            text.sections[0].value = opponent_text.clone();
+        }
+    }
+}

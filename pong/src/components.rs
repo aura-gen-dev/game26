@@ -34,3 +34,9 @@ pub enum Scorer {
 
 #[derive(Event)]
 pub struct Scored(pub Scorer);
+
+#[derive(Component)]
+pub struct PlayerScoreboard;
+
+#[derive(Component)]
+pub struct OpponentScoreboard;
