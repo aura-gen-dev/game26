@@ -13,7 +13,7 @@ const PADDLE_WIDTH: f32 = 15.;
 const PADDLE_HEIGHT: f32 = 100.;
 const PADDLE_PAD: f32 = PADDLE_WIDTH / 2. + 10.;
 const BALL_RADIUS: f32 = 8.;
-const BALL_SPEED: f32 = 200.;
+const BALL_SPEED: f32 = 400.;
 const PADDLE_SPEED: f32 = 200.;
 
 fn main() {
@@ -35,9 +35,11 @@ fn main() {
             Update,
             (
                 player_movement,
-                update_position.after(player_movement),
-                normalize_ball_speed.before(update_position),
-            ),
+                normalize_ball_speed,
+                update_position,
+                opponent_movement,
+                check_collisions,
+            ).chain(),
         )
         .run();
 }
@@ -59,7 +61,7 @@ fn setup(
             ..default()
         },
         Ball,
-        Velocity(Vec3::new(BALL_SPEED, BALL_SPEED, 0.0)),
+        Velocity(Vec3::new(-BALL_SPEED, BALL_SPEED, 0.0)),
     ));
 
     // Player
@@ -91,7 +93,6 @@ fn setup(
             ..default()
         },
         OpponentPaddle,
-        Velocity(Vec3::ZERO),
     ));
 }
 
@@ -123,3 +124,87 @@ fn player_movement(
         }
     }
 }
+
+fn opponent_movement(
+    ball_query: Query<&Transform, With<Ball>>,
+    mut query: Query<&mut Transform, (With<OpponentPaddle>, Without<Ball>)>,
+) {
+    let ball_transform= ball_query.single();
+    let mut paddle_transform = query.single_mut();
+
+    paddle_transform.translation.y = ball_transform.translation.y;
+}
+
+fn check_collisions(
+    mut ball_query: Query<(&mut Velocity, &mut Transform), (With<Ball>, Without<PlayerPaddle>, Without<OpponentPaddle>)>,
+    mut player_query: Query<(&mut Velocity, &mut Transform), (With<PlayerPaddle>, Without<OpponentPaddle>)>,
+    mut opponent_query: Query<&mut Transform, (With<OpponentPaddle>, Without<Ball>, Without<PlayerPaddle>)>,
+) {
+    let (mut ball_velocity, mut ball_transform) = ball_query.single_mut();
+    let (mut player_velocity, mut player_transform) = player_query.single_mut();
+    let mut opponent_transform = opponent_query.single_mut();
+
+    let ball_x = ball_transform.translation.x;
+    let ball_y = ball_transform.translation.y;
+
+    let player_x = player_transform.translation.x;
+    let player_y = player_transform.translation.y;
+
+    let opponent_x = opponent_transform.translation.x;
+    let opponent_y = opponent_transform.translation.y;
+
+    // if ball_x - BALL_RADIUS <= -SCREEN_WIDTH / 2. {
+    //     // Player scores
+    //     println!("Player scores!");
+    //     return
+    // } else if ball_x + BALL_RADIUS >= SCREEN_WIDTH / 2. {
+    //     // Opponent scores
+    //     println!("Opponent scores!");
+    //     return
+    // }
+
+    if ball_y - BALL_RADIUS <= -SCREEN_HEIGHT / 2. {
+        // Bounce off the bottom wall
+        ball_velocity.0.y = -ball_velocity.0.y;
+        ball_transform.translation.y = -SCREEN_HEIGHT / 2. + BALL_RADIUS + 1.;
+    } else if ball_y + BALL_RADIUS >= SCREEN_HEIGHT / 2. {
+        // Bounce off the top wall
+        ball_velocity.0.y = -ball_velocity.0.y;
+        ball_transform.translation.y = SCREEN_HEIGHT / 2. - BALL_RADIUS - 1.;
+    }
+
+    if ball_x - BALL_RADIUS <= player_x + PADDLE_WIDTH / 2.
+        && ball_y - BALL_RADIUS <= player_y + PADDLE_HEIGHT / 2.
+        && ball_y + BALL_RADIUS >= player_y - PADDLE_HEIGHT / 2.
+    {
+        // Bounce off the player paddle
+        ball_velocity.0.x = -ball_velocity.0.x;
+        ball_transform.translation.x = player_x + PADDLE_WIDTH / 2. + BALL_RADIUS + 1.;
+    } else if ball_x + BALL_RADIUS >= opponent_x - PADDLE_WIDTH / 2.
+        && ball_y - BALL_RADIUS <= opponent_y + PADDLE_HEIGHT / 2.
+        && ball_y + BALL_RADIUS >= opponent_y - PADDLE_HEIGHT / 2.
+    {
+        // Bounce off the opponent paddle
+        ball_velocity.0.x = -ball_velocity.0.x;
+        ball_transform.translation.x = opponent_x - PADDLE_WIDTH / 2. - BALL_RADIUS - 1.;
+    }
+
+    if player_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. {
+        // Prevent the player from going off the top of the screen
+        player_velocity.0.y = 0.;
+        player_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2.;
+    } else if player_y - PADDLE_HEIGHT / 2. <= -SCREEN_HEIGHT / 2. {
+        // Prevent the player from going off the bottom of the screen
+        player_velocity.0.y = 0.;
+        player_transform.translation.y = -SCREEN_HEIGHT / 2. + PADDLE_HEIGHT / 2.;
+    }
+
+    if opponent_y + PADDLE_HEIGHT / 2. >= SCREEN_HEIGHT / 2. {
+        // Prevent the opponent from going off the top of the screen
+        opponent_transform.translation.y = SCREEN_HEIGHT / 2. - PADDLE_HEIGHT / 2.;
+    } else if opponent_y - PADDLE_HEIGHT / 2. <= -SCREEN_HEIGHT / 2. {
+        // Prevent the opponent from going off the bottom of the screen
+        opponent_transform.translation.y = -SCREEN_HEIGHT / 2. + PADDLE_HEIGHT / 2.;
+    }
+}
+
