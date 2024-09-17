@@ -8,3 +8,4 @@ I remember hearing a story about how John Romero of id Software fame had learned
 (in chronological order of completion)
 
 - [Pong](pong/README.md)
+- [Brick Breaker](brick_breaker/README.md)
