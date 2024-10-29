@@ -9,3 +9,10 @@ I remember hearing a story about how John Romero of id Software fame had learned
 
 - [Pong](pong/README.md)
 - [Brick Breaker](brick_breaker/README.md)
+
+## Resources
+This section is a handy collection of resources that I used to create some of the games here.
+
+### Collision Detection
+- [OpenGL AABB](https://learnopengl.com/In-Practice/2D-Game/Collisions/Collision-detection)
+- [Sort, sweep, prune](https://leanrada.com/notes/sweep-and-prune/)
